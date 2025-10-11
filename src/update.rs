@@ -205,6 +205,45 @@ unsafe impl <K, V> Update for cranelift_entity::SecondaryMap<K, V> where K: cran
     }
 }
 
+#[cfg(feature = "cranelift-entity")]
+unsafe impl <T> Update for cranelift_entity::ListPool<T> where T: cranelift_entity::EntityRef + cranelift_entity::packed_option::ReservedValue {
+    unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+        let old = unsafe { &mut *old_pointer };
+        if *old != new_value {
+            *old = new_value;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[cfg(feature = "cranelift-entity")]
+unsafe impl <T> Update for cranelift_entity::EntityList<T> where T: cranelift_entity::EntityRef + cranelift_entity::packed_option::ReservedValue {
+    unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+        let old = unsafe { &mut *old_pointer };
+        if *old != new_value {
+            *old = new_value;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[cfg(feature = "cranelift-entity")]
+unsafe impl <T> Update for cranelift_entity::EntitySet<T> where T: cranelift_entity::EntityRef {
+    unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+        let old = unsafe { &mut *old_pointer };
+        if *old != new_value {
+            *old = new_value;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 macro_rules! maybe_update_vec {
     ($old_pointer: expr, $new_vec: expr, $elem_ty: ty) => {{
         let old_pointer = $old_pointer;
