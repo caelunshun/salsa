@@ -166,6 +166,45 @@ unsafe impl Update for std::convert::Infallible {
     }
 }
 
+#[cfg(feature = "cranelift-entity")]
+unsafe impl <K, V> Update for cranelift_entity::PrimaryMap<K, V> where K: cranelift_entity::EntityRef, V: Update {
+    unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+        let old_map = unsafe { &mut *old_pointer };
+        if old_map.len() != new_value.len() {
+            old_map.clear();
+            *old_map = new_value;
+            return true;
+        }
+
+        let mut changed = false;
+        for (old_element, new_element) in old_map.values_mut().zip(new_value.into_iter().map(|(_, v)| v)) {
+            changed |= unsafe { V::maybe_update(old_element, new_element) };
+        }
+        changed
+    }
+}
+
+#[cfg(feature = "cranelift-entity")]
+unsafe impl <K, V> Update for cranelift_entity::SecondaryMap<K, V> where K: cranelift_entity::EntityRef, V: Default + Clone + Update {
+    unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
+        let old_map = unsafe { &mut *old_pointer };
+
+        let mut changed = false;
+        for (k, old_v) in old_map.iter_mut() {
+            let new_v = new_value[k].clone();
+            changed |= unsafe { V::maybe_update(old_v, new_v) };
+        }
+
+        for (k, new_v) in new_value.iter() {
+            let old_v = &mut old_map[k];
+            let new_v = new_v.clone();
+            changed |= unsafe { V::maybe_update(old_v, new_v) };
+        }
+
+        changed
+    }
+}
+
 macro_rules! maybe_update_vec {
     ($old_pointer: expr, $new_vec: expr, $elem_ty: ty) => {{
         let old_pointer = $old_pointer;
